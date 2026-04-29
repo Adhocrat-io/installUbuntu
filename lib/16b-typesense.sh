@@ -56,8 +56,20 @@ EOF
 chown root:root /etc/typesense/typesense-server.ini
 chmod 0600 /etc/typesense/typesense-server.ini
 
+# Drop-in systemd : force --api-address en CLI. Constaté en v30.0 : la directive
+# api-address du .ini est ignorée (Typesense écoute sur 0.0.0.0). Le flag CLI
+# prend priorité et corrige le bind. UFW reste fermé sur 8108 dans tous les cas,
+# mais on veut quand même le bind loopback explicite par défense en profondeur.
+mkdir -p /etc/systemd/system/typesense-server.service.d
+cat > /etc/systemd/system/typesense-server.service.d/override.conf <<EOF
+[Service]
+ExecStart=
+ExecStart=/usr/bin/typesense-server --config=/etc/typesense/typesense-server.ini --api-address=127.0.0.1 --api-port=8108
+EOF
+
 systemctl daemon-reload
 systemctl enable --now typesense-server
+systemctl restart typesense-server
 
 # Sanity check : Typesense doit répondre sur /health (200 OK)
 sleep 2
