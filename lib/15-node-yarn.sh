@@ -14,4 +14,9 @@ if ! command -v yarn >/dev/null 2>&1; then
     npm install -g --silent yarn
 fi
 
-log_ok "Node $(node -v) + Yarn $(yarn --version) installés."
+if ! command -v pnpm >/dev/null 2>&1; then
+    log_info "  → installation pnpm (global, via npm)…"
+    npm install -g --silent pnpm
+fi
+
+log_ok "Node $(node -v) + Yarn $(yarn --version) + pnpm $(pnpm --version) installés."

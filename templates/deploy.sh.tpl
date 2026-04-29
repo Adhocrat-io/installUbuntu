@@ -60,7 +60,13 @@ if [ -f package.json ]; then
         jq -e '.scripts.build' package.json >/dev/null 2>&1
     }
 
-    if [ -f yarn.lock ]; then
+    if [ -f pnpm-lock.yaml ]; then
+        echo "[$(date -Iseconds)] $ENV : pnpm install + build (pnpm-lock.yaml détecté)"
+        pnpm install --frozen-lockfile
+        if has_build_script; then
+            pnpm run build
+        fi
+    elif [ -f yarn.lock ]; then
         echo "[$(date -Iseconds)] $ENV : yarn install + build (yarn.lock détecté)"
         yarn install --frozen-lockfile --non-interactive
         if has_build_script; then
@@ -71,7 +77,7 @@ if [ -f package.json ]; then
         npm ci --no-audit --no-fund
         npm run build --if-present
     else
-        echo "[$(date -Iseconds)] $ENV : ⚠ package.json présent mais aucun lockfile (yarn.lock ou package-lock.json) — skip install JS." >&2
+        echo "[$(date -Iseconds)] $ENV : ⚠ package.json présent mais aucun lockfile (pnpm-lock.yaml, yarn.lock ou package-lock.json) — skip install JS." >&2
     fi
 fi
 
