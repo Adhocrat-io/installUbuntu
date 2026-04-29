@@ -37,8 +37,10 @@ load_secrets
 TYPESENSE_API_KEY="${TYPESENSE_API_KEY:-$(gen_password)}"
 record_secret TYPESENSE_API_KEY "$TYPESENSE_API_KEY"
 
-# Conf : bind loopback strict, data + log dirs cohérents avec le packaging Debian
-install -d -m 0750 -o typesense -g typesense /var/lib/typesense /var/log/typesense
+# Conf : bind loopback strict. Les dossiers data/log sont déjà créés par le .deb
+# (root:root). Le service tourne en root par défaut côté package — on garde ce
+# comportement pour rester en phase avec les futures upgrades du paquet.
+mkdir -p /etc/typesense /var/lib/typesense /var/log/typesense
 
 cat > /etc/typesense/typesense-server.ini <<EOF
 # Géré par installUbuntu — toute édition manuelle sera écrasée au prochain run du module 16b.
@@ -50,8 +52,9 @@ api-port = 8108
 log-dir = /var/log/typesense
 enable-cors = false
 EOF
-chown root:typesense /etc/typesense/typesense-server.ini
-chmod 0640 /etc/typesense/typesense-server.ini
+# Conf contient l'API key → root only.
+chown root:root /etc/typesense/typesense-server.ini
+chmod 0600 /etc/typesense/typesense-server.ini
 
 systemctl daemon-reload
 systemctl enable --now typesense-server
