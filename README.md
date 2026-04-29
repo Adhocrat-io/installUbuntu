@@ -37,7 +37,7 @@ Déploiement automatique via **un seul webhook GitHub** (pas GitHub Actions) :
 
 ```bash
 # Sur le VPS, en root (ou via sudo) :
-git clone https://github.com/<ton-fork>/installUbuntu.git /opt/installUbuntu
+git clone https://github.com/Adhocrat-io/installUbuntu.git /opt/installUbuntu
 cd /opt/installUbuntu
 sudo bash install.sh
 ```
