@@ -20,6 +20,15 @@ CONFIG_FILE="${STATE_DIR}/config.env"
 LOG_FILE="/var/log/install-ubuntu.log"
 export STATE_DIR CONFIG_FILE LOG_FILE
 
+# Évite tout prompt interactif sur Ubuntu 24.04+ :
+# - DEBIAN_FRONTEND=noninteractive : apt ne pose aucune question (conf files…)
+# - NEEDRESTART_MODE=a : needrestart auto-restart les services sans demander
+# - NEEDRESTART_SUSPEND=1 : ceinture ET bretelles si la conf drop-in tarde
+# Le module 04-packages dépose en plus une conf permanente dans /etc/needrestart/conf.d/.
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a
+export NEEDRESTART_SUSPEND=1
+
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
     echo "Ce script doit être lancé en root (sudo bash install.sh)." >&2
     exit 1

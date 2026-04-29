@@ -3,6 +3,18 @@
 
 export DEBIAN_FRONTEND=noninteractive
 
+# Conf needrestart permanente : pas de prompt interactif lors des futurs upgrades
+# (cron unattended-upgrades, apt manuel, etc.). Indispensable sur Ubuntu 24.04+
+# où needrestart est installé par défaut et bloque les sessions non-tty.
+if [ -d /etc/needrestart/conf.d ] || apt-cache show needrestart >/dev/null 2>&1; then
+    mkdir -p /etc/needrestart/conf.d
+    cat > /etc/needrestart/conf.d/99-auto.conf <<'EOF'
+# Géré par installUbuntu — auto-restart sans prompt
+$nrconf{restart} = 'a';
+$nrconf{kernelhints} = -1;
+EOF
+fi
+
 log_info "  → apt update…"
 apt-get update -qq
 
