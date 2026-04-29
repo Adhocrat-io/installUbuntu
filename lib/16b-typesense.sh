@@ -1,31 +1,35 @@
 #!/usr/bin/env bash
 # 16b-typesense — Typesense search engine, optionnel (si INSTALL_TYPESENSE=true)
 # Bind 127.0.0.1:8108, API key généré aléatoirement, données /var/lib/typesense.
+#
+# Install direct via .deb officiel (plus déterministe que le repo APT, qui
+# change parfois d'URL/format de clé GPG). Version pinnée via TYPESENSE_VERSION
+# — override possible dans config.env pour forcer une autre version.
 
 if [ "${INSTALL_TYPESENSE:-false}" != "true" ]; then
     log_info "INSTALL_TYPESENSE != true — skip Typesense."
     return 0
 fi
 
+TYPESENSE_VERSION="${TYPESENSE_VERSION:-30.0}"
+save_config TYPESENSE_VERSION "$TYPESENSE_VERSION"
+
 export DEBIAN_FRONTEND=noninteractive
 
-# Idempotent : si déjà installé, on continue (chmod / API key /etc régénérés).
-if ! command -v typesense-server >/dev/null 2>&1; then
-    log_info "  → ajout du repo APT Typesense (signed-by keyring)…"
-    install -d -m 0755 /etc/apt/keyrings
-    curl -fsSL --max-time 30 https://dl.typesense.org/apt/typesense-bookworm.gpg.key \
-        | gpg --dearmor -o /etc/apt/keyrings/typesense.gpg
-    chmod 0644 /etc/apt/keyrings/typesense.gpg
+# Idempotent : si déjà installé à la bonne version, on saute le téléchargement
+INSTALLED_VERSION="$(dpkg-query -W -f='${Version}\n' typesense-server 2>/dev/null || true)"
+if [ "$INSTALLED_VERSION" != "$TYPESENSE_VERSION" ]; then
+    ARCH="$(dpkg --print-architecture)"   # amd64, arm64…
+    DEB_URL="https://dl.typesense.org/releases/${TYPESENSE_VERSION}/typesense-server-${TYPESENSE_VERSION}-${ARCH}.deb"
+    DEB_PATH="/tmp/typesense-server-${TYPESENSE_VERSION}-${ARCH}.deb"
 
-    cat > /etc/apt/sources.list.d/typesense.list <<'EOF'
-deb [signed-by=/etc/apt/keyrings/typesense.gpg] https://dl.typesense.org/apt/ bookworm main
-EOF
+    log_info "  → téléchargement Typesense ${TYPESENSE_VERSION} (${ARCH})…"
+    curl -fL --max-time 120 --progress-bar "$DEB_URL" -o "$DEB_PATH" \
+        || die "Téléchargement Typesense KO : $DEB_URL"
 
-    log_info "  → apt update (sources Typesense)…"
-    apt-get update -qq
-
-    log_info "  → installation typesense-server…"
-    apt-get install -y -qq typesense-server
+    log_info "  → installation du paquet .deb…"
+    apt-get install -y -qq "$DEB_PATH"
+    rm -f "$DEB_PATH"
 fi
 
 # Génération / réutilisation de l'API key (depuis .secrets.env si re-run)
