@@ -49,8 +49,11 @@ fi
 
 if [ -f package.json ]; then
     echo "[$(date -Iseconds)] $ENV : npm ci + build"
-    npm ci --silent
-    npm run build --if-present
+    # CI=true : tous les outils passent en mode non-interactif strict (npm, vite,
+    # husky…). Pas de --silent : on veut voir la progression sur les gros projets
+    # (sinon ça donne l'impression de bloquer).
+    CI=true npm ci --no-audit --no-fund
+    CI=true npm run build --if-present
 fi
 
 echo "[$(date -Iseconds)] $ENV : migrate"
