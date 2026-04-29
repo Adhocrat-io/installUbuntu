@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+
+# Claude Code workspace
+.claude/
+
+# Local override (lance install.sh sans modifier le repo)
+config.env

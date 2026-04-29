@@ -1,0 +1,4 @@
+# /etc/sudoers.d/ubuntu-deploy — autorisations strictes pour les déploiements
+ubuntu ALL=(root) NOPASSWD: /bin/systemctl reload frankenphp
+ubuntu ALL=(root) NOPASSWD: /bin/systemctl restart frankenphp
+ubuntu ALL=(root) NOPASSWD: /usr/local/bin/enable-octane-worker.sh
