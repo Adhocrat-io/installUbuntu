@@ -118,6 +118,38 @@ sudo -u ubuntu /usr/local/bin/deploy-staging.sh
 - Logs install      : \`/var/log/install-ubuntu.log\`
 EOF
 
+# Section Typesense optionnelle (appendée après pour éviter les jeux de quoting
+# sur les triple-backticks d'un heredoc imbriqué).
+if [ "${INSTALL_TYPESENSE:-false}" = "true" ] && [ -n "${TYPESENSE_API_KEY:-}" ]; then
+    cat >> "$PWD_FILE" <<EOF
+
+## Typesense (search engine local)
+
+- Bind     : 127.0.0.1:8108 (loopback only, accès via Laravel/Scout)
+- API key  : \`${TYPESENSE_API_KEY}\`
+- Data dir : \`/var/lib/typesense/\`
+- Logs     : \`/var/log/typesense/\`
+- Service  : \`typesense-server.service\`
+
+Vérification :
+
+\`\`\`bash
+curl -s http://127.0.0.1:8108/health
+curl -s -H "X-TYPESENSE-API-KEY: ${TYPESENSE_API_KEY}" http://127.0.0.1:8108/collections
+\`\`\`
+
+Côté Laravel (déjà pré-rempli dans .env par le bootstrap) :
+
+\`\`\`
+SCOUT_DRIVER=typesense
+TYPESENSE_HOST=127.0.0.1
+TYPESENSE_PORT=8108
+TYPESENSE_PROTOCOL=http
+TYPESENSE_API_KEY=${TYPESENSE_API_KEY}
+\`\`\`
+EOF
+fi
+
 chmod 600 "$PWD_FILE"
 chown ubuntu:ubuntu "$PWD_FILE"
 

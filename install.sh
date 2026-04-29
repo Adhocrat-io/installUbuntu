@@ -64,6 +64,7 @@ MODULES=(
     14-composer
     15-node-yarn
     16-redis
+    16b-typesense
     17-supervisor
     18-postfix
     19-www-tree

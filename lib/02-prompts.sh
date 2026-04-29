@@ -52,14 +52,24 @@ if [ -z "${ALERT_EMAIL:-}" ]; then
     save_config ALERT_EMAIL "$ALERT_EMAIL"
 fi
 
+if [ -z "${INSTALL_TYPESENSE:-}" ]; then
+    if ask_yes_no "Installer Typesense (search engine local, bind 127.0.0.1:8108) ?" n; then
+        INSTALL_TYPESENSE=true
+    else
+        INSTALL_TYPESENSE=false
+    fi
+    save_config INSTALL_TYPESENSE "$INSTALL_TYPESENSE"
+fi
+
 log_info "Configuration :"
-log_info "  HOSTNAME       = $HOSTNAME"
-log_info "  FQDN           = $FQDN"
-log_info "  DOMAIN         = $DOMAIN (apex + www, staging.$DOMAIN)"
-log_info "  SLUG           = $SLUG"
-log_info "  REPO_URL       = $REPO_URL"
-log_info "  PROD_BRANCH    = $PROD_BRANCH"
-log_info "  STAGING_BRANCH = $STAGING_BRANCH"
-log_info "  ALERT_EMAIL    = $ALERT_EMAIL"
+log_info "  HOSTNAME          = $HOSTNAME"
+log_info "  FQDN              = $FQDN"
+log_info "  DOMAIN            = $DOMAIN (apex + www, staging.$DOMAIN)"
+log_info "  SLUG              = $SLUG"
+log_info "  REPO_URL          = $REPO_URL"
+log_info "  PROD_BRANCH       = $PROD_BRANCH"
+log_info "  STAGING_BRANCH    = $STAGING_BRANCH"
+log_info "  ALERT_EMAIL       = $ALERT_EMAIL"
+log_info "  INSTALL_TYPESENSE = $INSTALL_TYPESENSE"
 
 ask_yes_no "Confirmer et continuer ?" o || die "Annulé par l'utilisateur."

@@ -65,6 +65,13 @@ populate_env() {
     set_or_append CACHE_STORE   redis              "${env_dir}/.env"
     set_or_append SESSION_DRIVER redis             "${env_dir}/.env"
     set_or_append QUEUE_CONNECTION redis           "${env_dir}/.env"
+    if [ "${INSTALL_TYPESENSE:-false}" = "true" ]; then
+        set_or_append SCOUT_DRIVER       typesense  "${env_dir}/.env"
+        set_or_append TYPESENSE_HOST     127.0.0.1  "${env_dir}/.env"
+        set_or_append TYPESENSE_PORT     8108       "${env_dir}/.env"
+        set_or_append TYPESENSE_PROTOCOL http       "${env_dir}/.env"
+        set_or_append TYPESENSE_API_KEY  "$TYPESENSE_API_KEY" "${env_dir}/.env"
+    fi
     # APP_KEY laissé vide ici — généré par deploy.sh après composer install (vendor/ requis).
     chown ubuntu:www-data "${env_dir}/.env"
     chmod 640 "${env_dir}/.env"
