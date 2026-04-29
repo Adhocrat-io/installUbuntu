@@ -32,8 +32,9 @@ N_WORKERS=4
 # Décommente la ligne worker correspondante (formatée à l'install)
 sed -i -E "s|^[[:space:]]*#[[:space:]]*worker (${SITE_ROOT//\//\\/}/frankenphp-worker\.php) [0-9]+|        worker \1 ${N_WORKERS}|" "$CADDYFILE"
 
-# Validation puis reload
-if /usr/local/bin/frankenphp validate --config "$CADDYFILE" >/dev/null 2>&1; then
+# Validation puis reload — validate exécuté en ubuntu pour ne pas créer de
+# fichiers de log root-owned (validate charge la config et ouvre les loggers).
+if sudo -u ubuntu /usr/local/bin/frankenphp validate --config "$CADDYFILE" >/dev/null 2>&1; then
     systemctl reload frankenphp
     mkdir -p "$(dirname "$MARK")"
     touch "$MARK"

@@ -27,7 +27,18 @@ setcap 'cap_net_bind_service=+ep' /usr/local/bin/frankenphp || true
 # Arborescence Caddy
 mkdir -p /etc/frankenphp /var/log/frankenphp /var/lib/caddy
 chown -R ubuntu:ubuntu /var/log/frankenphp /var/lib/caddy
-chmod 755 /var/log/frankenphp /var/lib/caddy
+chmod 2775 /var/log/frankenphp /var/lib/caddy
+
+# Pré-création des log files en ubuntu:ubuntu pour neutraliser un piège connu :
+# `frankenphp validate` charge la config et ouvre les loggers en écriture, donc
+# CRÉE les fichiers manquants. Si validate tourne en root (ce qui arrive via
+# enable-octane-worker.sh appelé en sudo depuis deploy.sh), les fichiers sont
+# créés root-owned, et le service (User=ubuntu) ne peut plus écrire dessus.
+# Le setgid sur le dossier (chmod 2775) garantit aussi que tout nouveau fichier
+# hérite du groupe ubuntu — defense in depth.
+for logfile in access.log production.log staging.log; do
+    install -m 0664 -o ubuntu -g ubuntu /dev/null "/var/log/frankenphp/${logfile}"
+done
 
 # Caddyfile généré depuis template
 render_template "${SCRIPT_DIR}/templates/Caddyfile.tpl" /etc/frankenphp/Caddyfile
