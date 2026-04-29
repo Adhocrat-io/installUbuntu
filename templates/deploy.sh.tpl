@@ -48,12 +48,31 @@ if [ -f artisan ] && ! [ -f public/frankenphp-worker.php ]; then
 fi
 
 if [ -f package.json ]; then
-    echo "[$(date -Iseconds)] $ENV : npm ci + build"
     # CI=true : tous les outils passent en mode non-interactif strict (npm, vite,
     # husky…). Pas de --silent : on veut voir la progression sur les gros projets
-    # (sinon ça donne l'impression de bloquer).
-    CI=true npm ci --no-audit --no-fund
-    CI=true npm run build --if-present
+    # (sinon ça donne l'impression de bloquer alors que ça travaille).
+    export CI=true
+
+    # Détection du package manager via le lockfile présent dans le repo.
+    # `npm ci` exige package-lock.json, `yarn install --frozen-lockfile` exige
+    # yarn.lock. Mélanger les deux conduit à des erreurs silencieuses.
+    has_build_script() {
+        jq -e '.scripts.build' package.json >/dev/null 2>&1
+    }
+
+    if [ -f yarn.lock ]; then
+        echo "[$(date -Iseconds)] $ENV : yarn install + build (yarn.lock détecté)"
+        yarn install --frozen-lockfile --non-interactive
+        if has_build_script; then
+            yarn run build
+        fi
+    elif [ -f package-lock.json ]; then
+        echo "[$(date -Iseconds)] $ENV : npm ci + build (package-lock.json détecté)"
+        npm ci --no-audit --no-fund
+        npm run build --if-present
+    else
+        echo "[$(date -Iseconds)] $ENV : ⚠ package.json présent mais aucun lockfile (yarn.lock ou package-lock.json) — skip install JS." >&2
+    fi
 fi
 
 echo "[$(date -Iseconds)] $ENV : migrate"
