@@ -51,8 +51,8 @@ Repo \`${REPO_URL}\` → Settings → Webhooks → Add webhook
 
 | Champ        | Valeur                                       |
 | ------------ | -------------------------------------------- |
-| Payload URL  | \`https://${DOMAIN}/_gh-deploy/hooks/gh-deploy\` |
-| Content type | \`application/json\`                          |
+| Payload URL  | \`https://${DOMAIN}/_gh-deploy\`             |
+| Content type | \`application/json\`                         |
 | Secret       | \`${HMAC_SECRET}\`                           |
 | Events       | Just the push event                          |
 | Active       | ✓                                            |
