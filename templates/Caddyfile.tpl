@@ -25,9 +25,11 @@ www.{{DOMAIN}} {
     root * /var/www/{{SLUG}}/production/public
     encode zstd gzip
 
-    # Webhook GitHub : route isolée — sinon le rewrite Laravel ci-dessous l'avale
-    # (Caddy ré-ordonne rewrite avant handle_path, donc on cloisonne par handle).
-    handle_path /_gh-deploy* {
+    # Webhook GitHub : route isolée — sinon le rewrite Laravel ci-dessous l'avale.
+    # Le client GitHub poste sur /_gh-deploy ; on réécrit en interne vers /hooks/gh-deploy
+    # (chemin attendu par adnanh/webhook avec son urlprefix par défaut "hooks").
+    handle /_gh-deploy {
+        rewrite * /hooks/gh-deploy
         reverse_proxy 127.0.0.1:9000
     }
 
