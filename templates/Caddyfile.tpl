@@ -25,10 +25,11 @@ www.{{DOMAIN}} {
     root * /var/www/{{SLUG}}/production/public
     encode zstd gzip
 
-    # Webhook GitHub : route isolée — sinon le rewrite Laravel ci-dessous l'avale.
-    # Le client GitHub poste sur /_gh-deploy ; on réécrit en interne vers /hooks/gh-deploy
+    # Webhook GitHub : route isolée AVANT toute autre — sinon le rewrite Laravel l'avale.
+    # GitHub poste sur /_gh-deploy (avec ou sans slash) ; rewrite vers /hooks/gh-deploy
     # (chemin attendu par adnanh/webhook avec son urlprefix par défaut "hooks").
-    handle /_gh-deploy {
+    @gh_deploy path /_gh-deploy /_gh-deploy/
+    handle @gh_deploy {
         rewrite * /hooks/gh-deploy
         reverse_proxy 127.0.0.1:9000
     }
