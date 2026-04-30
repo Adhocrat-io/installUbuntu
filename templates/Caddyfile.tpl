@@ -17,29 +17,44 @@
 
 # Snippet réutilisable : règles de cache TTL par type de fichier.
 # Importé via `import cache_rules` dans chaque bloc de site.
-# Les matchers `path` ne ciblent que les fichiers statiques (servis directement par
-# Caddy) — les réponses Laravel (HTML/JSON dynamiques) ne sont PAS impactées et
-# conservent leurs propres headers Cache-Control.
+#
+# Chaque matcher combine `path` (extension) ET `file` (existence physique sur disque).
+# Conséquence : si /favicon.ico n'existe PAS, Laravel répond une 404 avec
+# `Cache-Control: no-cache` et nos règles ne s'appliquent pas (ce qui est correct).
+# Le préfixe `>` sur Cache-Control remplace toute valeur posée par PHP, par sécurité.
 (cache_rules) {
     # Assets immuables (Vite/Mix hashent les noms) — 30 jours, immutable
-    @cache_immutable path *.jpg *.jpeg *.png *.gif *.webp *.svg *.svgz *.woff *.woff2 *.ttf *.otf *.eot *.mp4 *.webm *.ogg *.ogv *.m4a *.m4v
-    header @cache_immutable Cache-Control "public, max-age=2592000, immutable"
+    @cache_immutable {
+        path *.jpg *.jpeg *.png *.gif *.webp *.svg *.svgz *.woff *.woff2 *.ttf *.otf *.eot *.mp4 *.webm *.ogg *.ogv *.m4a *.m4v
+        file
+    }
+    header @cache_immutable >Cache-Control "public, max-age=2592000, immutable"
 
     # Favicon : 1 semaine (nom fixe, peut être remplacée occasionnellement)
-    @cache_favicon path *.ico
-    header @cache_favicon Cache-Control "public, max-age=604800"
+    @cache_favicon {
+        path *.ico
+        file
+    }
+    header @cache_favicon >Cache-Control "public, max-age=604800"
 
     # JS / CSS / source maps : 7 jours
     # (avec hash Vite, on pourrait monter à immutable 30j)
-    @cache_code path *.js *.css *.map
-    header @cache_code Cache-Control "public, max-age=604800"
+    @cache_code {
+        path *.js *.css *.map
+        file
+    }
+    header @cache_code >Cache-Control "public, max-age=604800"
 
-    # Flux RSS / Atom : 1 heure
+    # Flux RSS / Atom : 1 heure (servis souvent en dynamique par Laravel,
+    # donc PAS de matcher `file` ici — on cible aussi les routes /feed.xml etc.)
     @cache_feeds path *.rss *.atom *.xml
-    header @cache_feeds Cache-Control "public, max-age=3600"
+    header @cache_feeds >Cache-Control "public, max-age=3600"
 
     # CORS pour webfonts (utile si servi depuis sous-domaine ou CDN)
-    @cors_fonts path *.woff *.woff2 *.ttf *.otf *.eot
+    @cors_fonts {
+        path *.woff *.woff2 *.ttf *.otf *.eot
+        file
+    }
     header @cors_fonts Access-Control-Allow-Origin *
 }
 
