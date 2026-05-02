@@ -73,13 +73,22 @@ ${SSH_DEPLOY_PUBKEY}
 
 Clé privée correspondante : \`/home/ubuntu/.ssh/deploy_key\` (chmod 600).
 
-## Monitoring (Netdata)
+## Monitoring (Ember)
 
-Bind sur 127.0.0.1:19999 — accès uniquement via tunnel SSH :
+Dashboard TUI temps réel pour Caddy/FrankenPHP. Pas de port exposé : tu lis
+directement l'admin API locale (127.0.0.1:2019) depuis le shell SSH.
 
 \`\`\`bash
-ssh -p 2222 -L 19999:127.0.0.1:19999 ubuntu@${FQDN}
-# puis ouvre http://localhost:19999 dans ton navigateur local
+ssh -p 2222 ubuntu@${FQDN}
+ember            # TUI : RPS, latences, percentiles, threads/workers FrankenPHP, logs
+ember status     # one-shot health check
+ember --help
+\`\`\`
+
+Si \`ember\` se plaint de l'absence de métriques Caddy :
+
+\`\`\`bash
+ember init       # active les métriques via admin API, sans restart
 \`\`\`
 
 ## Backups MariaDB

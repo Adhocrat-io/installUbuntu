@@ -73,7 +73,7 @@ MODULES=(
     22-clone-and-bootstrap
     23-webhook
     24-mariadb-backup
-    25-netdata
+    25-ember
     26-logrotate
     99-finalize
 )
