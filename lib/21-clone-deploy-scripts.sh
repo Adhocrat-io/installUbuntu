@@ -2,6 +2,9 @@
 # 21-clone-deploy-scripts — installe les scripts /usr/local/bin/{dispatch,deploy-{prod,staging}}.sh
 
 require_var SLUG PROD_BRANCH STAGING_BRANCH
+# APP_SUBDIR peut être vide (app à la racine) — pas de require_var.
+: "${APP_SUBDIR:=}"
+export APP_SUBDIR
 
 # dispatch-deploy.sh : lit $1 (ref reçu de webhook) et appelle le bon deploy.
 render_template "${SCRIPT_DIR}/templates/dispatch-deploy.sh.tpl" /usr/local/bin/dispatch-deploy.sh

@@ -105,8 +105,10 @@ populate_env() {
     log_ok "${env_dir}/.env pré-rempli (APP_KEY sera généré au déploiement)."
 }
 
-populate_env "${WWW_BASE}/production" "${DOMAIN}"          "$DB_NAME_PROD"    "$DB_USER_PROD"    "$DB_PROD_PWD"    production
-populate_env "${WWW_BASE}/staging"    "staging.${DOMAIN}"  "$DB_NAME_STAGING" "$DB_USER_STAGING" "$DB_STAGING_PWD" staging
+# En monorepo, l'app Laravel (et son .env / .env.example) vit dans un sous-dossier.
+APP_REL="${APP_SUBDIR:+/${APP_SUBDIR}}"
+populate_env "${WWW_BASE}/production${APP_REL}" "${DOMAIN}"          "$DB_NAME_PROD"    "$DB_USER_PROD"    "$DB_PROD_PWD"    production
+populate_env "${WWW_BASE}/staging${APP_REL}"    "staging.${DOMAIN}"  "$DB_NAME_STAGING" "$DB_USER_STAGING" "$DB_STAGING_PWD" staging
 
 # DNS check : éviter rate-limit Let's Encrypt si DNS pas propagé (5 échecs/h/account)
 SERVER_IP="$(curl -fsSL https://api.ipify.org 2>/dev/null || curl -fsSL https://ifconfig.me 2>/dev/null || echo "")"

@@ -10,8 +10,8 @@
     }
     frankenphp {
         # Workers Octane décommentés par enable-octane-worker.sh au premier déploiement.
-        # worker /var/www/{{SLUG}}/production/public/frankenphp-worker.php 4
-        # worker /var/www/{{SLUG}}/staging/public/frankenphp-worker.php 2
+        # worker /var/www/{{SLUG}}/production{{APP_SUBDIR_PATH}}/public/frankenphp-worker.php 4
+        # worker /var/www/{{SLUG}}/staging{{APP_SUBDIR_PATH}}/public/frankenphp-worker.php 2
     }
 }
 
@@ -65,7 +65,7 @@ www.{{DOMAIN}} {
 
 # Production (apex)
 {{DOMAIN}} {
-    root * /var/www/{{SLUG}}/production/public
+    root * /var/www/{{SLUG}}/production{{APP_SUBDIR_PATH}}/public
     encode zstd gzip
 
     # Webhook GitHub : route isolée AVANT toute autre — sinon le rewrite Laravel l'avale.
@@ -120,7 +120,7 @@ www.{{DOMAIN}} {
 
 # Staging
 staging.{{DOMAIN}} {
-    root * /var/www/{{SLUG}}/staging/public
+    root * /var/www/{{SLUG}}/staging{{APP_SUBDIR_PATH}}/public
     encode zstd gzip
 
     # Bloquer fichiers cachés / backups (idem prod)

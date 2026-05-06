@@ -47,6 +47,16 @@ if [ -z "${STAGING_BRANCH:-}" ]; then
     save_config STAGING_BRANCH "$STAGING_BRANCH"
 fi
 
+# APP_SUBDIR : monorepo où l'app Laravel est dans un sous-dossier (ex: web-overlay/).
+# Vide = app à la racine du repo (cas standard).
+if [ -z "${APP_SUBDIR+x}" ]; then
+    APP_SUBDIR="$(ask "Sous-dossier de l'app Laravel dans le repo (vide si app à la racine)" "")"
+    # Nettoyage : pas de slash en début/fin
+    APP_SUBDIR="${APP_SUBDIR#/}"
+    APP_SUBDIR="${APP_SUBDIR%/}"
+    save_config APP_SUBDIR "$APP_SUBDIR"
+fi
+
 if [ -z "${ALERT_EMAIL:-}" ]; then
     ALERT_EMAIL="$(ask "Email pour alertes système et Let's Encrypt (mailé localement à ubuntu pour l'instant)" "ubuntu@${FQDN}")"
     save_config ALERT_EMAIL "$ALERT_EMAIL"
@@ -69,6 +79,7 @@ log_info "  SLUG              = $SLUG"
 log_info "  REPO_URL          = $REPO_URL"
 log_info "  PROD_BRANCH       = $PROD_BRANCH"
 log_info "  STAGING_BRANCH    = $STAGING_BRANCH"
+log_info "  APP_SUBDIR        = ${APP_SUBDIR:-<racine du repo>}"
 log_info "  ALERT_EMAIL       = $ALERT_EMAIL"
 log_info "  INSTALL_TYPESENSE = $INSTALL_TYPESENSE"
 

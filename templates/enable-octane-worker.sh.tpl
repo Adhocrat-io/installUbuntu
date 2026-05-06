@@ -14,8 +14,10 @@ esac
 
 CADDYFILE=/etc/frankenphp/Caddyfile
 
-# Slug et chemin worker — détectés depuis le Caddyfile (root *)
-SITE_ROOT="$(grep -oE 'root \* /var/www/[^/]+/'"$ENV"'/public' "$CADDYFILE" | head -n1 | awk '{print $3}')"
+# Slug et chemin worker — détectés depuis le Caddyfile (root *).
+# Le segment ${ENV} peut être suivi d'un sous-dossier monorepo (ex: /web-overlay)
+# avant /public. Le ([^[:space:]]*) capture optionnellement ce sous-dossier.
+SITE_ROOT="$(grep -oE "root \* /var/www/[^/]+/${ENV}([^[:space:]]*/)?public" "$CADDYFILE" | head -n1 | awk '{print $3}')"
 [ -n "$SITE_ROOT" ] || { echo "Site root introuvable dans Caddyfile pour $ENV" >&2; exit 1; }
 
 WORKER="${SITE_ROOT}/frankenphp-worker.php"

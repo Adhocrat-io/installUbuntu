@@ -8,6 +8,11 @@ set -euo pipefail
 ENV={{ENV}}
 BRANCH={{BRANCH}}
 SITE_DIR={{SITE_DIR}}
+APP_SUBDIR={{APP_SUBDIR}}
+
+# APP_DIR : où tournent composer/npm/artisan. Égal à SITE_DIR si app à la racine,
+# sinon SITE_DIR/<APP_SUBDIR> pour les monorepos (ex: octopol/web-overlay).
+APP_DIR="$SITE_DIR${APP_SUBDIR:+/$APP_SUBDIR}"
 
 cd "$SITE_DIR"
 
@@ -22,6 +27,10 @@ echo "[$(date -Iseconds)] $ENV : git fetch + reset"
 git fetch --all --prune
 git reset --hard "origin/${BRANCH}"
 git clean -fd
+
+# Toutes les commandes app (composer, npm, artisan) tournent dans APP_DIR.
+[ -d "$APP_DIR" ] || { echo "APP_DIR introuvable : $APP_DIR — vérifier APP_SUBDIR." >&2; exit 1; }
+cd "$APP_DIR"
 
 # Filet de sécurité : .env devrait avoir été pré-rempli au bootstrap
 if [ ! -f .env ] && [ -f .env.example ]; then
