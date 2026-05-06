@@ -10,6 +10,11 @@ require_var REPO_URL PROD_BRANCH STAGING_BRANCH SLUG DOMAIN
 
 WWW_BASE="/var/www/${SLUG}"
 
+remote_branch_exists() {
+    local branch="$1"
+    sudo -u ubuntu git ls-remote --heads "$REPO_URL" "$branch" | grep -q .
+}
+
 clone_if_empty() {
     local target="$1" branch="$2"
     if [ -d "${target}/.git" ]; then
@@ -24,6 +29,28 @@ clone_if_empty() {
     fi
     sudo -u ubuntu git clone --branch "$branch" "$REPO_URL" "$target"
 }
+
+# Pré-check des branches distantes avant clone — fail-fast avec message clair
+# (la deploy key est read-only par design, on ne peut pas créer la branche depuis ici).
+for _b in "$PROD_BRANCH" "$STAGING_BRANCH"; do
+    if ! remote_branch_exists "$_b"; then
+        cat <<MSG
+
+╔══════════════════════════════════════════════════════════════════╗
+║  BRANCHE DISTANTE MANQUANTE                                      ║
+╠══════════════════════════════════════════════════════════════════╣
+║  La branche '${_b}' n'existe pas sur ${REPO_URL}
+║                                                                  ║
+║  Crée-la depuis ton poste local, par exemple :                   ║
+║    git push origin ${PROD_BRANCH}:${_b}
+║                                                                  ║
+║  Puis relance le script (le module 22 reprendra ici).            ║
+╚══════════════════════════════════════════════════════════════════╝
+
+MSG
+        die "Branche '${_b}' absente sur le remote — voir message ci-dessus."
+    fi
+done
 
 clone_if_empty "${WWW_BASE}/production" "$PROD_BRANCH"
 clone_if_empty "${WWW_BASE}/staging"    "$STAGING_BRANCH"
