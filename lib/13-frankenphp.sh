@@ -4,18 +4,34 @@
 
 require_var DOMAIN SLUG ALERT_EMAIL
 
-# Préflight : ports 80/443 doivent être libres pour FrankenPHP.
-# Cas typique : nginx préinstallé sur l'image VPS qui squatte 80/443.
+# Préflight : qui écoute sur 80/443 ? Renvoie sur stdout les noms de process
+# uniques (un par ligne). Vide si rien n'écoute.
+listeners_on_80_443() {
+    ss -tlnHp '( sport = :80 or sport = :443 )' 2>/dev/null \
+        | grep -oE 'users:\(\("[^"]+"' \
+        | sed -E 's/^users:\(\(\"//; s/"$//' \
+        | sort -u
+}
+
+# Préflight : ports 80/443 doivent être libres (ou occupés par FrankenPHP lui-même
+# si on rejoue le module). Cas typique à neutraliser : nginx préinstallé sur l'image VPS.
 preflight_ports_80_443() {
-    local listeners
-    listeners="$(ss -tlnH '( sport = :80 or sport = :443 )' 2>/dev/null | awk '{print $5}' | sort -u)"
-    [ -n "$listeners" ] || return 0
+    local procs
+    procs="$(listeners_on_80_443)"
+    [ -n "$procs" ] || return 0
 
-    log_warn "Ports 80/443 déjà occupés : ${listeners//$'\n'/ }"
+    log_warn "Ports 80/443 occupés par : ${procs//$'\n'/, }"
 
-    # Si c'est nginx, on propose le purge complet (nginx-common laisse traîner
-    # une conf qui repart au reboot via apt unattended-upgrades).
-    if systemctl is-enabled --quiet nginx 2>/dev/null || systemctl is-active --quiet nginx 2>/dev/null; then
+    # Si seul FrankenPHP écoute, c'est qu'on rejoue le module (validate ok, reload
+    # plus loin). Rien à faire.
+    if [ "$procs" = "frankenphp" ]; then
+        log_info "FrankenPHP déjà en place — preflight OK (rejeu du module)."
+        return 0
+    fi
+
+    # nginx présent (avec ou sans autre process) → purge complet.
+    # nginx-common laisse traîner une conf qui peut repartir au reboot via apt.
+    if printf '%s\n' "$procs" | grep -qx nginx; then
         log_warn "nginx détecté — il bloque FrankenPHP."
         if ask_yes_no "Désinstaller nginx complètement (stop + disable + apt purge) ?" o; then
             systemctl disable --now nginx 2>/dev/null || true
@@ -26,12 +42,14 @@ preflight_ports_80_443() {
             die "Libère les ports 80/443 puis relance — FrankenPHP ne peut pas démarrer sinon."
         fi
     else
-        die "Ports 80/443 occupés par autre chose que nginx — investigue avec : sudo ss -tlnp | grep -E ':80|:443'"
+        die "Ports 80/443 occupés par : ${procs//$'\n'/, } — investigue avec : sudo ss -tlnp | grep -E ':80|:443'"
     fi
 
-    # Re-vérification après purge
-    listeners="$(ss -tlnH '( sport = :80 or sport = :443 )' 2>/dev/null | awk '{print $5}' | sort -u)"
-    [ -z "$listeners" ] || die "Ports 80/443 toujours occupés après purge nginx : ${listeners//$'\n'/ }"
+    # Re-vérification : il ne doit plus rester que rien (ou frankenphp si déjà up).
+    procs="$(listeners_on_80_443)"
+    if [ -n "$procs" ] && [ "$procs" != "frankenphp" ]; then
+        die "Ports 80/443 toujours occupés après purge nginx : ${procs//$'\n'/, }"
+    fi
 }
 preflight_ports_80_443
 
