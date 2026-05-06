@@ -4,6 +4,42 @@
 
 require_var DOMAIN SLUG ALERT_EMAIL
 
+# Préflight : ports 80/443 doivent être libres pour FrankenPHP.
+# Cas typique : nginx préinstallé sur l'image VPS qui squatte 80/443.
+preflight_ports_80_443() {
+    local listeners
+    listeners="$(ss -tlnH '( sport = :80 or sport = :443 )' 2>/dev/null | awk '{print $5}' | sort -u)"
+    [ -n "$listeners" ] || return 0
+
+    log_warn "Ports 80/443 déjà occupés : ${listeners//$'\n'/ }"
+
+    # Si c'est nginx, on propose le purge complet (nginx-common laisse traîner
+    # une conf qui repart au reboot via apt unattended-upgrades).
+    if systemctl is-enabled --quiet nginx 2>/dev/null || systemctl is-active --quiet nginx 2>/dev/null; then
+        log_warn "nginx détecté — il bloque FrankenPHP."
+        if ask_yes_no "Désinstaller nginx complètement (stop + disable + apt purge) ?" o; then
+            systemctl disable --now nginx 2>/dev/null || true
+            DEBIAN_FRONTEND=noninteractive apt-get -y purge 'nginx*' || true
+            DEBIAN_FRONTEND=noninteractive apt-get -y autoremove --purge || true
+            log_ok "nginx désinstallé."
+        else
+            die "Libère les ports 80/443 puis relance — FrankenPHP ne peut pas démarrer sinon."
+        fi
+    else
+        die "Ports 80/443 occupés par autre chose que nginx — investigue avec : sudo ss -tlnp | grep -E ':80|:443'"
+    fi
+
+    # Re-vérification après purge
+    listeners="$(ss -tlnH '( sport = :80 or sport = :443 )' 2>/dev/null | awk '{print $5}' | sort -u)"
+    [ -z "$listeners" ] || die "Ports 80/443 toujours occupés après purge nginx : ${listeners//$'\n'/ }"
+}
+preflight_ports_80_443
+
+# Sous-dossier de l'app dans le repo (vide par défaut → racine).
+# {{APP_SUBDIR_PATH}} dans le Caddyfile vaut "" ou "/web-overlay".
+APP_SUBDIR_PATH="${APP_SUBDIR:+/${APP_SUBDIR}}"
+export APP_SUBDIR_PATH
+
 # Téléchargement du binaire FrankenPHP officiel
 ARCH="$(uname -m)"
 case "$ARCH" in
