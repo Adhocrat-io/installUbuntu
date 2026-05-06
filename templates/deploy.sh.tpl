@@ -50,8 +50,10 @@ if [ -f .env ] && [ -f artisan ] && grep -qE '^APP_KEY=\s*$' .env; then
     php artisan key:generate --force --no-interaction || true
 fi
 
-# Octane : installation au premier passage si absent (génère le worker)
-if [ -f artisan ] && ! [ -f public/frankenphp-worker.php ]; then
+# Octane : installation au premier passage si le package est requis et le worker absent.
+# Si laravel/octane n'est pas dans composer.json, on reste en mode php_server classique
+# (FrankenPHP fonctionne très bien sans Octane, juste sans le boost de perfs).
+if [ -f artisan ] && [ -d vendor/laravel/octane ] && ! [ -f public/frankenphp-worker.php ]; then
     echo "[$(date -Iseconds)] $ENV : octane:install (première exécution)"
     php artisan octane:install --server=frankenphp --no-interaction || true
 fi
