@@ -56,6 +56,7 @@ MODULES=(
     06-ufw
     07-crowdsec
     08-kernel-hardening
+    08b-system-hardening
     09-fs-hardening
     10-unattended-upgrades
     11-mariadb

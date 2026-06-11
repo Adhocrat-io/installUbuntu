@@ -43,6 +43,13 @@ apt-get install -y -qq \
     openssh-server \
     debian-keyring \
     debian-archive-keyring \
-    bash-completion
+    bash-completion \
+    libpam-tmpdir \
+    libpam-pwquality \
+    debsums \
+    apt-show-versions \
+    needrestart \
+    auditd \
+    audispd-plugins
 
 log_ok "Paquets de base installés."

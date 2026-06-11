@@ -20,6 +20,9 @@ postconf -e "mynetworks = 127.0.0.0/8 [::1]/128"
 postconf -e "smtpd_relay_restrictions = permit_mynetworks reject_unauth_destination"
 postconf -e "smtp_tls_security_level = may"
 
+# Masquer OS et version dans le SMTP banner (Lynis MAIL-8818)
+postconf -e 'smtpd_banner = $myhostname ESMTP'
+
 # Alias root → ubuntu
 if ! grep -qE '^root:' /etc/aliases; then
     echo "root: ubuntu" >> /etc/aliases
