@@ -44,9 +44,14 @@ apt-get install -y -qq \
 
 # === 2. Sysctl additions ==================================================
 log "Mise à jour des sysctl (kernel hardening)…"
-cat > /etc/sysctl.d/99-hardening-extra.conf <<'EOF'
+# Renommer l'ancien fichier 99-hardening.conf en zz- pour qu'il gagne contre
+# /usr/lib/sysctl.d/99-protect-links.conf (ordre alphabétique, p > h).
+if [ -f /etc/sysctl.d/99-hardening.conf ] && [ ! -f /etc/sysctl.d/zz-hardening.conf ]; then
+    mv /etc/sysctl.d/99-hardening.conf /etc/sysctl.d/zz-hardening.conf
+fi
+
+cat > /etc/sysctl.d/zz-hardening-extra.conf <<'EOF'
 # Additions Lynis — appliquées par apply-hardening.sh
-# (complète /etc/sysctl.d/99-hardening.conf installé par installUbuntu)
 
 # Empêcher le chargement automatique des line disciplines TTY
 dev.tty.ldisc_autoload = 0
@@ -60,6 +65,26 @@ kernel.core_uses_pid = 1
 # Restreindre l'accès non-privilégié à perf_event_open()
 kernel.perf_event_paranoid = 3
 EOF
+
+# Service oneshot : re-applique sysctl APRÈS que les interfaces réseau soient up.
+# Sinon net.ipv4.conf.all.log_martians est reset au boot par networkd.
+cat > /etc/systemd/system/sysctl-late.service <<'EOF'
+[Unit]
+Description=Re-apply sysctl after network is online
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/sysctl --system
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload
+systemctl enable sysctl-late.service >/dev/null 2>&1 || true
+
 sysctl --system >/dev/null
 
 # === 3. Blacklist modprobe ================================================
@@ -139,6 +164,14 @@ if systemctl list-unit-files auditd.service >/dev/null 2>&1; then
     systemctl enable --now auditd >/dev/null 2>&1 || true
 fi
 
+# === 7b. Désactivation d'apport ==========================================
+# Le crash reporter Ubuntu force fs.suid_dumpable=2 au boot, ce qui casse
+# notre durcissement sysctl. Inutile sur un serveur prod.
+log "Désactivation d'apport (force suid_dumpable=2 au boot)…"
+if systemctl list-unit-files apport.service >/dev/null 2>&1; then
+    systemctl disable --now apport.service >/dev/null 2>&1 || true
+fi
+
 # === 8. Postfix banner ====================================================
 if command -v postconf >/dev/null 2>&1; then
     log "Mise à jour du banner Postfix…"
@@ -150,9 +183,9 @@ fi
 log "Installation de la bannière légale /etc/issue…"
 cat > /etc/issue <<'EOF'
 **********************************************************************
-*  Acces autorise uniquement aux personnes habilitees.                *
-*  Toute tentative d'acces non autorisee est interdite et peut        *
-*  faire l'objet de poursuites. Toutes les actions sont journalisees. *
+*  WARNING: Unauthorized access prohibited.                          *
+*  All activity is monitored, logged and may be prosecuted.          *
+*  Acces non autorise interdit ; toute activite est journalisee.     *
 **********************************************************************
 EOF
 cp /etc/issue /etc/issue.net

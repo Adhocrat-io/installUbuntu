@@ -63,6 +63,13 @@ if systemctl list-unit-files auditd.service >/dev/null 2>&1; then
     systemctl enable --now auditd >/dev/null 2>&1 || true
 fi
 
+# === 5b. Désactiver apport ===
+# Le crash reporter Ubuntu force fs.suid_dumpable=2 au boot pour capturer les
+# coredumps applicatifs. Inutile sur prod et casse notre hardening sysctl.
+if systemctl list-unit-files apport.service >/dev/null 2>&1; then
+    systemctl disable --now apport.service >/dev/null 2>&1 || true
+fi
+
 # === 6. Bannière légale ===
 install -m 0644 "${SCRIPT_DIR}/templates/issue-banner" /etc/issue
 install -m 0644 "${SCRIPT_DIR}/templates/issue-banner" /etc/issue.net
