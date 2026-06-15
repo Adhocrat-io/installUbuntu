@@ -71,6 +71,17 @@ if [ -z "${INSTALL_TYPESENSE:-}" ]; then
     save_config INSTALL_TYPESENSE "$INSTALL_TYPESENSE"
 fi
 
+# IPs admin à whitelister dans CrowdSec : ne seront JAMAIS bannies, quoi
+# qu'il arrive. Préremplit avec l'IP de la session SSH courante.
+if [ -z "${ADMIN_WHITELIST_IPS+x}" ]; then
+    DEFAULT_ADMIN_IP=""
+    if [ -n "${SSH_CLIENT:-}" ]; then
+        DEFAULT_ADMIN_IP="$(printf '%s\n' "$SSH_CLIENT" | awk '{print $1}')"
+    fi
+    ADMIN_WHITELIST_IPS="$(ask "IPs admin a NE JAMAIS bannir dans CrowdSec (espace-separe, IPs ou CIDR, vide pour aucune)" "$DEFAULT_ADMIN_IP")"
+    save_config ADMIN_WHITELIST_IPS "$ADMIN_WHITELIST_IPS"
+fi
+
 log_info "Configuration :"
 log_info "  HOSTNAME          = $HOSTNAME"
 log_info "  FQDN              = $FQDN"
@@ -82,5 +93,6 @@ log_info "  STAGING_BRANCH    = $STAGING_BRANCH"
 log_info "  APP_SUBDIR        = ${APP_SUBDIR:-<racine du repo>}"
 log_info "  ALERT_EMAIL       = $ALERT_EMAIL"
 log_info "  INSTALL_TYPESENSE = $INSTALL_TYPESENSE"
+log_info "  ADMIN_WHITELIST_IPS = ${ADMIN_WHITELIST_IPS:-<aucune>}"
 
 ask_yes_no "Confirmer et continuer ?" o || die "Annulé par l'utilisateur."
