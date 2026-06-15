@@ -78,8 +78,12 @@ if [ ! -x /usr/local/bin/frankenphp ]; then
         "https://github.com/php/frankenphp/releases/latest/download/frankenphp-linux-${FP_ARCH}" \
         -o /usr/local/bin/frankenphp \
         || die "Téléchargement FrankenPHP KO."
-    chmod +x /usr/local/bin/frankenphp
 fi
+# UMASK 027 (pose par 08b-system-hardening) fait que `chmod +x` symbolique
+# n'octroie PAS l'exec a "other" (le bit est masqué). Resultat : le service
+# tournant en User=ubuntu echoue avec status 203/EXEC. On force 0755 en mode
+# numerique qui ignore le umask.
+chmod 0755 /usr/local/bin/frankenphp
 
 # Capabilities pour bind 80/443 sans root (le service systemd l'octroiera aussi)
 setcap 'cap_net_bind_service=+ep' /usr/local/bin/frankenphp || true
