@@ -32,14 +32,24 @@ die() {
 }
 
 # ask "Question ?" "default" → renvoie sur stdout la réponse
+#
+# Si $2 est passé (même vide), une réponse vide est acceptée et le défaut
+# est utilisé. Sinon (pas de $2), on boucle jusqu'à une réponse non vide.
+# C'est `${2+x}` qui fait la différence entre "non passé" et "passé vide".
 ask() {
     local prompt="$1"
-    local default="${2:-}"
     local reply
-    if [ -n "$default" ]; then
-        read -r -p "${prompt} [${default}] : " reply || true
+    if [ "${2+x}" = "x" ]; then
+        # Un défaut a été fourni (éventuellement vide) → réponse vide OK
+        local default="$2"
+        if [ -n "$default" ]; then
+            read -r -p "${prompt} [${default}] : " reply || true
+        else
+            read -r -p "${prompt} : " reply || true
+        fi
         printf '%s' "${reply:-$default}"
     else
+        # Pas de défaut → on exige une réponse non vide
         while [ -z "${reply:-}" ]; do
             read -r -p "${prompt} : " reply || true
         done
