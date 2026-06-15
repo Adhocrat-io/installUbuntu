@@ -6,11 +6,17 @@ require_var DOMAIN SLUG ALERT_EMAIL
 
 # Préflight : qui écoute sur 80/443 ? Renvoie sur stdout les noms de process
 # uniques (un par ligne). Vide si rien n'écoute.
+#
+# IMPORTANT : grep retourne 1 quand il ne trouve rien, ce qui — avec
+# `set -o pipefail` — fait sortir le pipeline avec un code non-zero. Sans
+# le `|| true` final, l'assignment `procs="$(listeners_on_80_443)"` chez
+# l'appelant declenche `set -e` et le script s'arrete sans message.
 listeners_on_80_443() {
     ss -tlnHp '( sport = :80 or sport = :443 )' 2>/dev/null \
         | grep -oE 'users:\(\("[^"]+"' \
         | sed -E 's/^users:\(\(\"//; s/"$//' \
-        | sort -u
+        | sort -u \
+        || true
 }
 
 # Préflight : ports 80/443 doivent être libres (ou occupés par FrankenPHP lui-même
