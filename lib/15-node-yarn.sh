@@ -19,4 +19,13 @@ if ! command -v pnpm >/dev/null 2>&1; then
     npm install -g --silent pnpm
 fi
 
+# Avec UMASK 027 (pose par 08b-system-hardening), `npm install -g` cree les
+# dossiers /usr/lib/node_modules/{yarn,pnpm} en mode 750 (drwxr-x---). Les
+# non-root ne peuvent plus traverser ces dossiers, et l'execution des
+# binaires symlinkes depuis /usr/bin echoue avec "command not found".
+# On force du world-readable/executable apres coup.
+for pkg in yarn pnpm; do
+    [ -d "/usr/lib/node_modules/$pkg" ] && chmod -R go+rX "/usr/lib/node_modules/$pkg"
+done
+
 log_ok "Node $(node -v) + Yarn $(yarn --version) + pnpm $(pnpm --version) installés."
