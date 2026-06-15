@@ -12,6 +12,15 @@
 
 set -euo pipefail
 
+# UMASK 022 explicite : le hardening Lynis (module 08b) pose UMASK 027 dans
+# /etc/login.defs. Au premier passage l'install tourne avec l'ancien umask 022
+# (avant module 08b), donc tout est OK. Mais au re-run (interruption + relance),
+# sudo ouvre une nouvelle session avec umask 027, et les modules creent des
+# fichiers en 0640 et des dossiers en 0750. Resultat : `chmod +x` symbolique
+# n'octroie pas o+x, les binaires deviennent non-exec, les configs non-readable
+# par les users de service, etc. On force 022 pour rester nominal.
+umask 022
+
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 export SCRIPT_DIR
 

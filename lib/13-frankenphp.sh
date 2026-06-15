@@ -89,7 +89,11 @@ chmod 0755 /usr/local/bin/frankenphp
 setcap 'cap_net_bind_service=+ep' /usr/local/bin/frankenphp || true
 
 # Arborescence Caddy
+# IMPORTANT : UMASK 027 fait que `mkdir` cree les dossiers en 0750 et les
+# `>` redirections en 0640. Le service tourne en User=ubuntu et doit pouvoir
+# traverser /etc/frankenphp + lire le Caddyfile. On force des modes explicites.
 mkdir -p /etc/frankenphp /var/log/frankenphp /var/lib/caddy
+chmod 0755 /etc/frankenphp
 chown -R ubuntu:ubuntu /var/log/frankenphp /var/lib/caddy
 chmod 2775 /var/log/frankenphp /var/lib/caddy
 
@@ -104,8 +108,9 @@ for logfile in access.log production.log staging.log; do
     install -m 0664 -o ubuntu -g ubuntu /dev/null "/var/log/frankenphp/${logfile}"
 done
 
-# Caddyfile généré depuis template
+# Caddyfile généré depuis template (force 0644 contre UMASK 027)
 render_template "${SCRIPT_DIR}/templates/Caddyfile.tpl" /etc/frankenphp/Caddyfile
+chmod 0644 /etc/frankenphp/Caddyfile
 
 # Validation
 if ! /usr/local/bin/frankenphp validate --config /etc/frankenphp/Caddyfile 2>/tmp/caddy-validate.err; then
