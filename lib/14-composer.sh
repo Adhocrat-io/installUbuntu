@@ -24,4 +24,8 @@ ACTUAL_SIG="$(php -r "echo hash_file('sha384', '${TMP}/composer-setup.php');")"
 log_info "  → installation de Composer dans /usr/local/bin…"
 php "${TMP}/composer-setup.php" --install-dir=/usr/local/bin --filename=composer
 
-log_ok "Composer installé : $(composer --version --no-ansi 2>/dev/null | head -n1)"
+# `composer --version` peut hang lors du tout premier run (init du cache
+# /root/.config/composer, telechargement de cles). On met un timeout pour
+# que le log d'install ne bloque jamais ici.
+COMPOSER_VERSION="$(timeout 10 composer --version --no-ansi 2>/dev/null | head -n1 || echo 'version inconnue')"
+log_ok "Composer installé : ${COMPOSER_VERSION}"
