@@ -60,4 +60,14 @@ apt-get install -y -qq "${pkgs[@]}"
 
 update-alternatives --set php "/usr/bin/php${PHP_VERSION}" 2>/dev/null || true
 
+# Drop-in ini pour élargir les limites d'upload (par défaut 2 Mo / fichier,
+# max 20 fichiers — insuffisant pour la médiathèque admin). Copié dans
+# les conf.d cli ET fpm. Perms 0644 explicites : sudo tee créerait sinon
+# un fichier en 0640 root:root que PHP CLI ne parvient pas à lire.
+for target in /etc/php/${PHP_VERSION}/cli/conf.d /etc/php/${PHP_VERSION}/fpm/conf.d; do
+    [ -d "$target" ] || continue
+    install -m 0644 "${SCRIPT_DIR}/templates/php-upload-limits.ini" \
+        "${target}/99-upload-limits.ini"
+done
+
 log_ok "PHP ${PHP_VERSION} CLI installé avec extensions."

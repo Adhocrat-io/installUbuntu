@@ -122,6 +122,19 @@ fi
 # Service systemd
 install -m 0644 "${SCRIPT_DIR}/templates/frankenphp.service.tpl" /etc/systemd/system/frankenphp.service
 
+# Drop-in ini pour élargir les limites d'upload : FrankenPHP embarque son
+# propre PHP et n'utilise PAS /etc/php/8.4/. On copie le même fichier ici
+# et on le pointe via PHP_INI_SCAN_DIR dans un drop-in service.
+mkdir -p /etc/frankenphp/php.d
+install -m 0644 "${SCRIPT_DIR}/templates/php-upload-limits.ini" \
+    /etc/frankenphp/php.d/99-upload-limits.ini
+
+mkdir -p /etc/systemd/system/frankenphp.service.d
+cat > /etc/systemd/system/frankenphp.service.d/php-ini.conf <<'EOF'
+[Service]
+Environment=PHP_INI_SCAN_DIR=/etc/frankenphp/php.d
+EOF
+
 # Sudoers : ubuntu peut reload le service sans password
 install -m 0440 "${SCRIPT_DIR}/templates/sudoers-ubuntu" /etc/sudoers.d/ubuntu-deploy
 visudo -cf /etc/sudoers.d/ubuntu-deploy >/dev/null
