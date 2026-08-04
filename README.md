@@ -30,8 +30,19 @@ Déploiement automatique via **un seul webhook GitHub** (pas GitHub Actions) :
 - DNS du domaine pointant déjà vers l'IP du serveur, **avant le lancement** :
   - `nomdusite.com` (apex)
   - `www.nomdusite.com`
-  - `staging.nomdusite.com`
-- Un repo GitHub avec deux branches : prod (`main`/`master`) + `staging`
+  - `staging.nomdusite.com` *(uniquement si staging activé)*
+- Un repo GitHub avec la branche de prod (`main`/`master`), plus `staging` si l'environnement staging est activé
+
+## Production seule (sans staging)
+
+Réponds `n` au prompt « Installer un environnement staging ? », ou pré-remplis
+`STAGING_ENABLED=false` dans `config.env`. Dans ce mode :
+
+- aucune base ni utilisateur MariaDB `*_staging`
+- pas de `/var/www/{slug}/staging`, pas de `deploy-staging.sh`
+- l'hôte `staging.{domaine}` est retiré du Caddyfile — donc **aucun DNS
+  `staging.*` requis** et aucune tentative de certificat Let's Encrypt dessus
+- le webhook ne dispatche que la branche de production
 
 ## Lancement
 

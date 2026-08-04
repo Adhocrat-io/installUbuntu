@@ -12,16 +12,24 @@ id -u www-data >/dev/null 2>&1 || useradd --system --no-create-home --gid www-da
 usermod -aG www-data ubuntu
 
 WWW_BASE="/var/www/${SLUG}"
-mkdir -p "${WWW_BASE}/production" "${WWW_BASE}/staging"
+SITE_DIRS=("${WWW_BASE}/production")
+if staging_enabled; then
+    SITE_DIRS+=("${WWW_BASE}/staging")
+fi
+mkdir -p "${SITE_DIRS[@]}"
 
 # Owner ubuntu:www-data, setgid pour héritage du groupe
 chown -R ubuntu:www-data /var/www
 chmod 2755 /var/www
 chmod 2755 "$WWW_BASE"
-chmod 2755 "${WWW_BASE}/production" "${WWW_BASE}/staging"
+chmod 2755 "${SITE_DIRS[@]}"
 
 # ACL par défaut : tous les futurs fichiers seront ubuntu:www-data avec g+rwx
 setfacl -R -m u:ubuntu:rwx -m g:www-data:rx "$WWW_BASE"
 setfacl -R -d -m u:ubuntu:rwx -m g:www-data:rx "$WWW_BASE"
 
-log_ok "Arborescence /var/www/${SLUG}/{production,staging} prête (ubuntu:www-data, ACL set)."
+if staging_enabled; then
+    log_ok "Arborescence /var/www/${SLUG}/{production,staging} prête (ubuntu:www-data, ACL set)."
+else
+    log_ok "Arborescence /var/www/${SLUG}/production prête (ubuntu:www-data, ACL set)."
+fi

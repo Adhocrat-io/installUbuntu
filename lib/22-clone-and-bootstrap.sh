@@ -6,7 +6,10 @@
 #   2. Démarrage FrankenPHP (workers Octane encore désactivés ; certs Let's Encrypt obtenus).
 #   3. Exécute deploy-production.sh puis deploy-staging.sh (composer, npm, migrate, octane:install, reload).
 
-require_var REPO_URL PROD_BRANCH STAGING_BRANCH SLUG DOMAIN
+require_var REPO_URL PROD_BRANCH SLUG DOMAIN
+if staging_enabled; then
+    require_var STAGING_BRANCH
+fi
 
 WWW_BASE="/var/www/${SLUG}"
 
@@ -32,7 +35,11 @@ clone_if_empty() {
 
 # Pré-check des branches distantes avant clone — fail-fast avec message clair
 # (la deploy key est read-only par design, on ne peut pas créer la branche depuis ici).
-for _b in "$PROD_BRANCH" "$STAGING_BRANCH"; do
+BRANCHES_TO_CHECK=("$PROD_BRANCH")
+if staging_enabled; then
+    BRANCHES_TO_CHECK+=("$STAGING_BRANCH")
+fi
+for _b in "${BRANCHES_TO_CHECK[@]}"; do
     if ! remote_branch_exists "$_b"; then
         cat <<MSG
 
@@ -53,7 +60,9 @@ MSG
 done
 
 clone_if_empty "${WWW_BASE}/production" "$PROD_BRANCH"
-clone_if_empty "${WWW_BASE}/staging"    "$STAGING_BRANCH"
+if staging_enabled; then
+    clone_if_empty "${WWW_BASE}/staging" "$STAGING_BRANCH"
+fi
 
 # Permissions après clone (les fichiers viennent de git en mode 644/755 ubuntu:ubuntu,
 # on rétablit ubuntu:www-data pour que FrankenPHP en groupe www-data lise).
@@ -108,14 +117,20 @@ populate_env() {
 # En monorepo, l'app Laravel (et son .env / .env.example) vit dans un sous-dossier.
 APP_REL="${APP_SUBDIR:+/${APP_SUBDIR}}"
 populate_env "${WWW_BASE}/production${APP_REL}" "${DOMAIN}"          "$DB_NAME_PROD"    "$DB_USER_PROD"    "$DB_PROD_PWD"    production
-populate_env "${WWW_BASE}/staging${APP_REL}"    "staging.${DOMAIN}"  "$DB_NAME_STAGING" "$DB_USER_STAGING" "$DB_STAGING_PWD" staging
+if staging_enabled; then
+    populate_env "${WWW_BASE}/staging${APP_REL}" "staging.${DOMAIN}" "$DB_NAME_STAGING" "$DB_USER_STAGING" "$DB_STAGING_PWD" staging
+fi
 
 # DNS check : éviter rate-limit Let's Encrypt si DNS pas propagé (5 échecs/h/account)
 SERVER_IP="$(curl -fsSL https://api.ipify.org 2>/dev/null || curl -fsSL https://ifconfig.me 2>/dev/null || echo "")"
 [ -n "$SERVER_IP" ] || die "Impossible de récupérer l'IP publique du serveur (api.ipify.org/ifconfig.me KO)."
 
 DNS_OK=1
-for d in "$DOMAIN" "www.${DOMAIN}" "staging.${DOMAIN}"; do
+DNS_NAMES=("$DOMAIN" "www.${DOMAIN}")
+if staging_enabled; then
+    DNS_NAMES+=("staging.${DOMAIN}")
+fi
+for d in "${DNS_NAMES[@]}"; do
     resolved="$(getent ahostsv4 "$d" | awk '{print $1}' | sort -u | head -n1)"
     if [ -z "$resolved" ]; then
         log_warn "DNS : $d ne résout pas."
@@ -145,6 +160,8 @@ sleep 3
 
 # Premier déploiement — en user ubuntu, comme un webhook futur.
 sudo -u ubuntu /usr/local/bin/deploy-production.sh
-sudo -u ubuntu /usr/local/bin/deploy-staging.sh
+if staging_enabled; then
+    sudo -u ubuntu /usr/local/bin/deploy-staging.sh
+fi
 
 log_ok "Bootstrap terminé : sites cloned + premier deploy OK + FrankenPHP up."

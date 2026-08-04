@@ -83,6 +83,13 @@ is_done() {
     [ -f "${STATE_DIR}/.${module}.done" ]
 }
 
+# Environnement staging demandé ? Défaut : true (comportement historique).
+# Mettre STAGING_ENABLED=false dans config.env pour une install production seule :
+# ni base, ni dossier, ni hôte Caddy, ni script de déploiement staging.
+staging_enabled() {
+    [ "${STAGING_ENABLED:-true}" != "false" ]
+}
+
 mark_done() {
     local module="$1"
     touch "${STATE_DIR}/.${module}.done"

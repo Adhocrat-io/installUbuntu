@@ -42,9 +42,26 @@ if [ -z "${PROD_BRANCH:-}" ]; then
     save_config PROD_BRANCH "$PROD_BRANCH"
 fi
 
-if [ -z "${STAGING_BRANCH:-}" ]; then
-    STAGING_BRANCH="$(ask "Branche staging" "staging")"
-    save_config STAGING_BRANCH "$STAGING_BRANCH"
+if [ -z "${STAGING_ENABLED:-}" ]; then
+    if ask_yes_no "Installer un environnement staging (staging.${DOMAIN}) ?" o; then
+        STAGING_ENABLED=true
+    else
+        STAGING_ENABLED=false
+    fi
+    save_config STAGING_ENABLED "$STAGING_ENABLED"
+fi
+
+if staging_enabled; then
+    if [ -z "${STAGING_BRANCH:-}" ]; then
+        STAGING_BRANCH="$(ask "Branche staging" "staging")"
+        save_config STAGING_BRANCH "$STAGING_BRANCH"
+    fi
+else
+    # Valeur vide explicite : les modules en aval testent staging_enabled(),
+    # mais require_var STAGING_BRANCH ne doit pas échouer.
+    STAGING_BRANCH=""
+    save_config STAGING_BRANCH ""
+    log_info "Staging désactivé — installation production seule."
 fi
 
 # APP_SUBDIR : monorepo où l'app Laravel est dans un sous-dossier (ex: web-overlay/).
@@ -85,11 +102,15 @@ fi
 log_info "Configuration :"
 log_info "  HOSTNAME          = $HOSTNAME"
 log_info "  FQDN              = $FQDN"
-log_info "  DOMAIN            = $DOMAIN (apex + www, staging.$DOMAIN)"
+if staging_enabled; then
+    log_info "  DOMAIN            = $DOMAIN (apex + www, staging.$DOMAIN)"
+else
+    log_info "  DOMAIN            = $DOMAIN (apex + www — pas de staging)"
+fi
 log_info "  SLUG              = $SLUG"
 log_info "  REPO_URL          = $REPO_URL"
 log_info "  PROD_BRANCH       = $PROD_BRANCH"
-log_info "  STAGING_BRANCH    = $STAGING_BRANCH"
+log_info "  STAGING_BRANCH    = ${STAGING_BRANCH:-<désactivé>}"
 log_info "  APP_SUBDIR        = ${APP_SUBDIR:-<racine du repo>}"
 log_info "  ALERT_EMAIL       = $ALERT_EMAIL"
 log_info "  INSTALL_TYPESENSE = $INSTALL_TYPESENSE"

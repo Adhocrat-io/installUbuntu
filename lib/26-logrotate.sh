@@ -3,9 +3,14 @@
 
 require_var SLUG
 
+LARAVEL_LOG_PATHS="/var/www/${SLUG}/production/storage/logs/*.log"
+if staging_enabled; then
+    LARAVEL_LOG_PATHS="${LARAVEL_LOG_PATHS}
+/var/www/${SLUG}/staging/storage/logs/*.log"
+fi
+
 cat > /etc/logrotate.d/laravel-${SLUG} <<EOF
-/var/www/${SLUG}/production/storage/logs/*.log
-/var/www/${SLUG}/staging/storage/logs/*.log
+${LARAVEL_LOG_PATHS}
 {
     daily
     rotate 14

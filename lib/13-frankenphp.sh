@@ -104,12 +104,30 @@ chmod 2775 /var/log/frankenphp /var/lib/caddy
 # créés root-owned, et le service (User=ubuntu) ne peut plus écrire dessus.
 # Le setgid sur le dossier (chmod 2775) garantit aussi que tout nouveau fichier
 # hérite du groupe ubuntu — defense in depth.
-for logfile in access.log production.log staging.log; do
+CADDY_LOGS=(access.log production.log)
+if staging_enabled; then
+    CADDY_LOGS+=(staging.log)
+fi
+for logfile in "${CADDY_LOGS[@]}"; do
     install -m 0664 -o ubuntu -g ubuntu /dev/null "/var/log/frankenphp/${logfile}"
 done
 
 # Caddyfile généré depuis template (force 0644 contre UMASK 027)
 render_template "${SCRIPT_DIR}/templates/Caddyfile.tpl" /etc/frankenphp/Caddyfile
+
+# Sans staging : on retire le bloc d'hôte staging.<domaine> (du début du bloc
+# jusqu'à son accolade fermante en colonne 0), son commentaire de section, et la
+# ligne de worker Octane commentée qui le référence. Sinon Caddy tenterait
+# d'obtenir un certificat Let's Encrypt pour un sous-domaine sans DNS.
+if ! staging_enabled; then
+    sed -i \
+        -e '/^# Staging$/d' \
+        -e "\|^staging\.${DOMAIN} {|,/^}/d" \
+        -e '\|^ *# worker .*/staging.*/public/frankenphp-worker\.php|d' \
+        -e '\|^# staging\..* → /var/www/.*/staging$|d' \
+        /etc/frankenphp/Caddyfile
+fi
+
 chmod 0644 /etc/frankenphp/Caddyfile
 
 # Validation

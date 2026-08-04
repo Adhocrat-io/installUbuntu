@@ -1,14 +1,35 @@
 #!/usr/bin/env bash
 # 99-finalize — génère /home/ubuntu/passwords.md (chmod 600), récap minimal en stdout
 
-require_var HOSTNAME FQDN DOMAIN SLUG REPO_URL PROD_BRANCH STAGING_BRANCH
+require_var HOSTNAME FQDN DOMAIN SLUG REPO_URL PROD_BRANCH
 
 load_secrets
 
 require_var \
-    DB_ROOT_PWD DB_PROD_PWD DB_STAGING_PWD \
-    DB_NAME_PROD DB_NAME_STAGING DB_USER_PROD DB_USER_STAGING \
+    DB_ROOT_PWD DB_PROD_PWD \
+    DB_NAME_PROD DB_USER_PROD \
     REDIS_PWD HMAC_SECRET SSH_DEPLOY_PUBKEY
+
+if staging_enabled; then
+    require_var STAGING_BRANCH DB_STAGING_PWD DB_NAME_STAGING DB_USER_STAGING
+fi
+
+# Blocs de passwords.md dépendant de staging : vides quand il est désactivé.
+if staging_enabled; then
+    STAGING_DB_BLOCK="### Database staging
+- Database : \`${DB_NAME_STAGING}\`
+- User     : \`${DB_USER_STAGING}\`
+- Password : \`${DB_STAGING_PWD}\`
+"
+    STAGING_DISPATCH_LINE="- push sur \`${STAGING_BRANCH}\` → déploie staging (\`https://staging.${DOMAIN}\`)"
+    STAGING_DEPLOY_CMD="sudo -u ubuntu /usr/local/bin/deploy-staging.sh"
+    SITES_PATH="\`/var/www/${SLUG}/{production,staging}\`"
+else
+    STAGING_DB_BLOCK=""
+    STAGING_DISPATCH_LINE=""
+    STAGING_DEPLOY_CMD=""
+    SITES_PATH="\`/var/www/${SLUG}/production\`"
+fi
 
 PWD_FILE=/home/ubuntu/passwords.md
 
@@ -35,11 +56,7 @@ cat > "$PWD_FILE" <<EOF
 - User     : \`${DB_USER_PROD}\`
 - Password : \`${DB_PROD_PWD}\`
 
-### Database staging
-- Database : \`${DB_NAME_STAGING}\`
-- User     : \`${DB_USER_STAGING}\`
-- Password : \`${DB_STAGING_PWD}\`
-
+${STAGING_DB_BLOCK}
 ## Redis
 
 - Bind     : 127.0.0.1:6379
@@ -60,7 +77,7 @@ Repo \`${REPO_URL}\` → Settings → Webhooks → Add webhook
 Le serveur dispatche automatiquement :
 
 - push sur \`${PROD_BRANCH}\` → déploie production (\`https://${DOMAIN}\`)
-- push sur \`${STAGING_BRANCH}\` → déploie staging (\`https://staging.${DOMAIN}\`)
+${STAGING_DISPATCH_LINE}
 - autre branche → ignoré (visible dans \`/var/log/deploy.log\`)
 
 ## Deploy key GitHub (déjà installée durant l'install)
@@ -113,7 +130,7 @@ sudo cscli alerts list
 
 # Trigger un déploiement manuel
 sudo -u ubuntu /usr/local/bin/deploy-production.sh
-sudo -u ubuntu /usr/local/bin/deploy-staging.sh
+${STAGING_DEPLOY_CMD}
 \`\`\`
 
 ## Fichiers et dossiers clés
@@ -122,7 +139,7 @@ sudo -u ubuntu /usr/local/bin/deploy-staging.sh
 - Service web       : \`frankenphp.service\`
 - Service webhook   : \`webhook.service\` (127.0.0.1:9000)
 - Config webhook    : \`/etc/webhook.conf.json\`
-- Sites             : \`/var/www/${SLUG}/{production,staging}\`
+- Sites             : ${SITES_PATH}
 - Logs FrankenPHP   : \`/var/log/frankenphp/\`
 - Logs install      : \`/var/log/install-ubuntu.log\`
 EOF

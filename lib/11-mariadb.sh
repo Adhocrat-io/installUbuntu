@@ -52,27 +52,37 @@ DELETE FROM mysql.db WHERE Db IN ('test','test\\_%');
 
 -- Bases applicatives
 CREATE DATABASE IF NOT EXISTS \`${DB_NAME_PROD}\`    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE DATABASE IF NOT EXISTS \`${DB_NAME_STAGING}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Users pour socket (localhost) ET TCP (127.0.0.1) : MariaDB ne fait pas le mapping
 -- automatique avec skip-name-resolve. Laravel + Octane se connectent en TCP sur 127.0.0.1.
 CREATE USER IF NOT EXISTS '${DB_USER_PROD}'@'localhost'    IDENTIFIED BY '${DB_PROD_PWD}';
-CREATE USER IF NOT EXISTS '${DB_USER_STAGING}'@'localhost' IDENTIFIED BY '${DB_STAGING_PWD}';
 CREATE USER IF NOT EXISTS '${DB_USER_PROD}'@'127.0.0.1'    IDENTIFIED BY '${DB_PROD_PWD}';
-CREATE USER IF NOT EXISTS '${DB_USER_STAGING}'@'127.0.0.1' IDENTIFIED BY '${DB_STAGING_PWD}';
 
 ALTER USER '${DB_USER_PROD}'@'localhost'    IDENTIFIED BY '${DB_PROD_PWD}';
-ALTER USER '${DB_USER_STAGING}'@'localhost' IDENTIFIED BY '${DB_STAGING_PWD}';
 ALTER USER '${DB_USER_PROD}'@'127.0.0.1'    IDENTIFIED BY '${DB_PROD_PWD}';
-ALTER USER '${DB_USER_STAGING}'@'127.0.0.1' IDENTIFIED BY '${DB_STAGING_PWD}';
 
 GRANT ALL PRIVILEGES ON \`${DB_NAME_PROD}\`.*    TO '${DB_USER_PROD}'@'localhost';
-GRANT ALL PRIVILEGES ON \`${DB_NAME_STAGING}\`.* TO '${DB_USER_STAGING}'@'localhost';
 GRANT ALL PRIVILEGES ON \`${DB_NAME_PROD}\`.*    TO '${DB_USER_PROD}'@'127.0.0.1';
+
+FLUSH PRIVILEGES;
+SQL
+
+if staging_enabled; then
+mariadb <<SQL
+CREATE DATABASE IF NOT EXISTS \`${DB_NAME_STAGING}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE USER IF NOT EXISTS '${DB_USER_STAGING}'@'localhost' IDENTIFIED BY '${DB_STAGING_PWD}';
+CREATE USER IF NOT EXISTS '${DB_USER_STAGING}'@'127.0.0.1' IDENTIFIED BY '${DB_STAGING_PWD}';
+
+ALTER USER '${DB_USER_STAGING}'@'localhost' IDENTIFIED BY '${DB_STAGING_PWD}';
+ALTER USER '${DB_USER_STAGING}'@'127.0.0.1' IDENTIFIED BY '${DB_STAGING_PWD}';
+
+GRANT ALL PRIVILEGES ON \`${DB_NAME_STAGING}\`.* TO '${DB_USER_STAGING}'@'localhost';
 GRANT ALL PRIVILEGES ON \`${DB_NAME_STAGING}\`.* TO '${DB_USER_STAGING}'@'127.0.0.1';
 
 FLUSH PRIVILEGES;
 SQL
+fi
 
 # .my.cnf root pour les scripts maintenance (chmod 600)
 cat > /root/.my.cnf <<EOF
@@ -82,4 +92,8 @@ password=${DB_ROOT_PWD}
 EOF
 chmod 600 /root/.my.cnf
 
-log_ok "MariaDB installée. DBs : ${DB_NAME_PROD}, ${DB_NAME_STAGING} (bind 127.0.0.1)."
+if staging_enabled; then
+    log_ok "MariaDB installée. DBs : ${DB_NAME_PROD}, ${DB_NAME_STAGING} (bind 127.0.0.1)."
+else
+    log_ok "MariaDB installée. DB : ${DB_NAME_PROD} (bind 127.0.0.1)."
+fi
