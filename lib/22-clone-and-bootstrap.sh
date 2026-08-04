@@ -122,7 +122,10 @@ if staging_enabled; then
 fi
 
 # DNS check : éviter rate-limit Let's Encrypt si DNS pas propagé (5 échecs/h/account)
-SERVER_IP="$(curl -fsSL https://api.ipify.org 2>/dev/null || curl -fsSL https://ifconfig.me 2>/dev/null || echo "")"
+# -4 obligatoire : sur un VPS avec IPv6 (cas OVH par défaut), curl sort en IPv6
+# et renvoie l'adresse v6 du serveur, alors que la vérification ci-dessous résout
+# les enregistrements A (IPv4) — la comparaison échouerait systématiquement.
+SERVER_IP="$(curl -4 -fsSL https://api.ipify.org 2>/dev/null || curl -4 -fsSL https://ifconfig.me 2>/dev/null || echo "")"
 [ -n "$SERVER_IP" ] || die "Impossible de récupérer l'IP publique du serveur (api.ipify.org/ifconfig.me KO)."
 
 DNS_OK=1
