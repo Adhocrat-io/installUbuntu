@@ -16,6 +16,9 @@ Sécurité par défaut :
 - **Kernel hardening** sysctl (SYN cookies, anti-spoof, ICMP, kptr_restrict, …)
 - `/tmp` et `/dev/shm` en `noexec,nosuid,nodev`
 - `unattended-upgrades` (security + reboot auto à 04:00 si nécessaire)
+- **Webroot verrouillé** : fichiers et dossiers cachés refusés à toute profondeur
+  (`.env`, `.git/`, `.aws/`, `.DS_Store`…, sauf `/.well-known/`), plus les
+  sauvegardes, dumps et archives (`*.sql`, `*.zip`, `*.bak`, `*~`…)
 
 Déploiement automatique via **un seul webhook GitHub** (pas GitHub Actions) :
 
@@ -82,6 +85,19 @@ Pour **forcer la ré-exécution d'un module** : supprimer son marqueur avant rel
 - 3 hôtes : apex, www (redir), staging
 - **Workers Octane** : 4 pour prod, 2 pour staging — activés automatiquement par `enable-octane-worker.sh` après le premier déploiement (présence de `public/frankenphp-worker.php`)
 - `caddy reload` (graceful, sans coupure) après chaque déploiement
+
+### Cache et performance d'affichage
+
+- **Assets Vite (`/build/*`) : 1 an `immutable`** — leur nom porte un hash du
+  contenu, l'URL change à chaque modification. C'est le gain principal sur les
+  visites répétées et la navigation interne.
+- Médias et polices hors build : 30 jours ; JS/CSS non hashés : 7 jours ;
+  favicon : 1 semaine ; flux RSS/Atom : 1 heure.
+- Compression `zstd` (puis `gzip` en repli) au-delà de 256 octets, HTTP/3 actif.
+- **Le HTML n'est jamais mis en cache publiquement**, volontairement : les pages
+  portent le jeton CSRF de la session. Un cache partagé servirait le jeton d'un
+  visiteur à un autre. La mise en cache des pages se fait côté application
+  (`spatie/laravel-responsecache`), là où la session est connue.
 
 ## Webhook GitHub : flow
 
