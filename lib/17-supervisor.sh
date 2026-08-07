@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# 17-supervisor — supervisor pour les queue workers Laravel
-# (configurations applicatives à ajouter manuellement par site dans /etc/supervisor/conf.d/)
+# 17-supervisor — installe supervisor, qui pilotera les workers Laravel.
+# Le worker de queue du site est posé par le module 24b, après le bootstrap :
+# il a besoin d'un `artisan` existant pour démarrer.
 
 apt-get install -y -qq supervisor
 
@@ -21,4 +22,4 @@ cat > /etc/supervisor/conf.d/README.example <<'EOF'
 # stopwaitsecs=3600
 EOF
 
-log_ok "Supervisor installé (configs applicatives à ajouter dans /etc/supervisor/conf.d/)."
+log_ok "Supervisor installé. Le worker de queue du site est posé par le module 24b (après le bootstrap)."

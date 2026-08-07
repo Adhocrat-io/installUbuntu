@@ -39,6 +39,19 @@ cat > /etc/logrotate.d/frankenphp <<'EOF'
 }
 EOF
 
+cat > /etc/logrotate.d/queue-worker <<'EOF'
+/var/log/queue-worker.log {
+    daily
+    rotate 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    copytruncate
+    su ubuntu adm
+}
+EOF
+
 cat > /etc/logrotate.d/deploy-log <<'EOF'
 /var/log/deploy.log {
     weekly

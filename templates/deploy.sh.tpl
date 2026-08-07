@@ -107,6 +107,10 @@ else
     php artisan view:clear
 fi
 
+# Signale aux workers de queue de redémarrer : sans cela, supervisor continue
+# de faire tourner l'ancien code jusqu'au recyclage --max-time (1 h).
+php artisan queue:restart || true
+
 # Active le worker Octane si possible (premier déploiement uniquement, idempotent)
 sudo /usr/local/bin/enable-octane-worker.sh "$ENV" || true
 
