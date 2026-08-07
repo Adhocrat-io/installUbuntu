@@ -16,9 +16,15 @@ if [ ! -f /etc/apt/sources.list.d/ondrej-ubuntu-php-${UBUNTU_CODENAME}.sources ]
 fi
 
 # Extensions critiques (DOIVENT être dispo dans le PPA pour la version cible — sinon fallback)
-PHP_EXTS_CRITICAL=(cli common mbstring xml curl gd intl bcmath mysql redis zip opcache)
-# Extensions optionnelles (skip si pas dispo en tant que paquet séparé — ex. pcntl est built-in)
-PHP_EXTS_OPTIONAL=(soap readline imagick)
+PHP_EXTS_CRITICAL=(cli common mbstring xml curl gd intl bcmath mysql redis zip)
+# Extensions optionnelles (skip si pas dispo en tant que paquet séparé — ex. pcntl est built-in).
+#
+# opcache est dans cette liste et NON dans les critiques : depuis PHP 8.5 le PPA
+# ondrej ne publie plus de paquet phpX.Y-opcache séparé, l'extension est fournie
+# par phpX.Y-common. La classer critique déclenchait un fallback sur PHP 8.4 alors
+# que PHP 8.5 est parfaitement installable. Sa présence réelle est vérifiée après
+# installation (voir le contrôle Zend OPcache en fin de module).
+PHP_EXTS_OPTIONAL=(soap readline imagick opcache)
 
 # Tente PHP 8.5 — si UNE extension critique manque, fallback 8.4
 PHP_VERSION="8.5"
@@ -69,5 +75,15 @@ for target in /etc/php/${PHP_VERSION}/cli/conf.d /etc/php/${PHP_VERSION}/fpm/con
     install -m 0644 "${SCRIPT_DIR}/templates/php-upload-limits.ini" \
         "${target}/99-upload-limits.ini"
 done
+
+# opcache n'est plus un paquet séparé à partir de 8.5 (fourni par phpX.Y-common) :
+# on vérifie donc que l'extension est réellement chargée, quelle que soit sa
+# provenance, plutôt que de se fier à l'existence d'un paquet.
+if "/usr/bin/php${PHP_VERSION}" -m 2>/dev/null | grep -qix "zend opcache"; then
+    log_ok "Zend OPcache chargé pour PHP ${PHP_VERSION}."
+else
+    log_warn "Zend OPcache absent de PHP ${PHP_VERSION} — performances dégradées."
+    log_warn "Vérifie : php${PHP_VERSION} -m | grep -i opcache"
+fi
 
 log_ok "PHP ${PHP_VERSION} CLI installé avec extensions."
