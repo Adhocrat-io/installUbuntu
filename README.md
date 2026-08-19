@@ -15,7 +15,7 @@ Sécurité par défaut :
 - **CrowdSec** + bouncer firewall
 - **Kernel hardening** sysctl (SYN cookies, anti-spoof, ICMP, kptr_restrict, …)
 - `/tmp` et `/dev/shm` en `noexec,nosuid,nodev`
-- `unattended-upgrades` (security + reboot auto à 04:00 si nécessaire)
+- `unattended-upgrades` (security, mail sur erreur seulement, reboot auto à 04:00 uniquement si une mise à jour l'exige)
 - **Webroot verrouillé** : fichiers et dossiers cachés refusés à toute profondeur
   (`.env`, `.git/`, `.aws/`, `.DS_Store`…, sauf `/.well-known/`), plus les
   sauvegardes, dumps et archives (`*.sql`, `*.zip`, `*.bak`, `*~`…)
